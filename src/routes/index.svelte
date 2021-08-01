@@ -17,7 +17,7 @@
 </script>
 
 <script lang="ts">
-  import type { Todo, TodoInput } from '$lib/todo';
+  import type { Todo, TodoInput } from '$lib/types/todo';
 
   export let todos: Todo[];
   let text = '';
