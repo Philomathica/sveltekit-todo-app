@@ -23,7 +23,7 @@
 </script>
 
 <ul>
-  {#each todos as todo (todo._id)}
+  {#each todos as todo (todo.id)}
     <div class="flex items-center gap-2">
       <input type="checkbox" bind:checked={todo.completed} disabled />
       <li>{todo.text}</li>

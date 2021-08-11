@@ -1,24 +1,20 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { connectToDatabase } from '$lib/db/mongo';
-import { ObjectId } from 'mongodb';
 import type { Todo } from '$lib/types/todo';
 import type { Locals } from '$lib/types/locals';
+import { v4 as uuid } from 'uuid';
 
-export const get: RequestHandler<Locals> = async ({ locals, query }) => {
+const todos: Todo[] = [];
+
+export const get: RequestHandler<Locals> = ({ locals, query }) => {
   if (!locals.userid) {
     return { status: 401 };
   }
 
   try {
     const completed = query.get('completed') === 'true';
-    const dbConnection = await connectToDatabase();
-    const db = dbConnection.db;
-    const collection = db.collection<Todo>('todos');
-    const todos = await collection
-      .find<Todo>({ completed, userId: locals.userid })
-      .toArray();
+    const filteredTodos: Todo[] = todos.filter(todo => todo.completed === completed && todo.userId === locals.userid);
 
-    return { status: 200, body: todos };
+    return { status: 200, body: filteredTodos };
   } catch (error) {
     console.error(error);
 
@@ -26,18 +22,19 @@ export const get: RequestHandler<Locals> = async ({ locals, query }) => {
   }
 };
 
-export const post: RequestHandler<Locals, string> = async ({ locals, body }) => {
+export const post: RequestHandler<Locals, string> = ({ locals, body }) => {
   if (!locals.userid) {
     return { status: 401 };
   }
 
   try {
-    const dbConnection = await connectToDatabase();
-    const db = dbConnection.db;
-    const collection = db.collection<Todo>('todos');
     const todo: Todo = JSON.parse(body);
 
-    await collection.insertOne({ ...todo, userId: locals.userid });
+    if (!todo.text) {
+      return { status: 304 };
+    }
+
+    todos.push({ ...todo, userId: locals.userid, id: uuid() });
 
     return { status: 200, body: { status: 'Success' } };
   } catch (error) {
@@ -47,17 +44,15 @@ export const post: RequestHandler<Locals, string> = async ({ locals, body }) => 
   }
 };
 
-export const put: RequestHandler<Locals, string> = async ({ locals, body }) => {
+export const put: RequestHandler<Locals, string> = ({ locals, body }) => {
   if (!locals.userid) {
     return { status: 401 };
   }
 
   try {
-    const dbConnection = await connectToDatabase();
-    const db = dbConnection.db;
-    const collection = db.collection<Todo>('todos');
     const todo: Todo = JSON.parse(body);
-    await collection.updateOne({ _id: new ObjectId(todo._id), userId: locals.userid }, { $set: { completed: todo.completed } });
+    const todoIndex = todos.findIndex(t => t.id === todo.id && todo.userId === locals.userid);
+    todos[todoIndex] = { ...todos[todoIndex], completed: todo.completed };
 
     return { status: 200, body: { status: 'Success' } };
   } catch (error) {
@@ -67,7 +62,7 @@ export const put: RequestHandler<Locals, string> = async ({ locals, body }) => {
   }
 };
 
-export const del: RequestHandler<Locals> = async ({ locals }) => {
+export const del: RequestHandler<Locals> = ({ locals }) => {
   if (!locals.userid) {
     return { status: 401 };
   }

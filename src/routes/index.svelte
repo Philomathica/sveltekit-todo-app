@@ -23,6 +23,10 @@
   let text = '';
 
   async function addTodo() {
+    if (!text) {
+      return;
+    }
+
     try {
       const todo: TodoInput = { text, completed: false };
       await fetch('/todos.json', { method: 'POST', body: JSON.stringify(todo) });
@@ -55,7 +59,7 @@
 <button on:click={addTodo}>Add Todo</button>
 
 <ul>
-  {#each todos as todo (todo._id)}
+  {#each todos as todo (todo.id)}
     <div class="flex items-center gap-2">
       <input type="checkbox" bind:checked={todo.completed} on:change={() => completeTodo(todo)} />
       <li>{todo.text}</li>
